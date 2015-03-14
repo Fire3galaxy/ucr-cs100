@@ -3,178 +3,120 @@
 \usepackage[english]{babel}
 \usepackage[T1]{fontenc}
 \usepackage[margin=.6in]{geometry}
+\usepackage{longtable}
 \usepackage{listings}
 \usepackage{multicol}
-\usepackage{tabu}
-\usepackage{longtable}
+\usepackage{multirow}
 \usepackage{color}
-\usepackage{microtype} % For Add to macro
+\usepackage{tabu}
+\usepackage{microtype}
+
+%\makeatletter % To make function descriptions indent when they're long
+%\newcommand*\indenth[2]{%
+%  \@hangfrom{#1}%
+%  {#2}%
+%} 
+%\makeatother
+
+%Indent w/ static #
+\newcommand{\indenth}[1][.5]{\hangindent=#1in
+                         \hangafter=1 }
 
 \lstset{ %
 basicstyle=\large % For font size
 }
 
-\makeatletter   % To make verbatim look like lstlisting
-\g@addto@macro\verbatim@font{\lsstyle}
-\makeatother
-
-\lstnewenvironment{code}[2] % Tried to macro easy inclusion of code. Failed
-  {\lstset{label=#1}}
-  {}
-
-%Trying to make verbatim look like lstlisting to take advantage of \verb, , syntax
-\newcommand{\verbcode}[1]{\large\ttfamily#1\rm\normalsize}
-
-
 \title{CS100 Syscall Cheatsheet}
-\author{}
+\author{Read your man pages, and sleep once in a while, k?}
 \date{}
 
 \begin{document}
 \maketitle
 
 \large This document contains interfaces, libraries, descriptions, and errors for 
-syscalls used in CS100. I list errors on the back. For your linux's safety and 
-your grade's safety, please use perror() with every syscall.
-
-\smallskip
-\begin{lstlisting}
-void perror(const char* s)
-\end{lstlisting}
-\verb,void perror(const char* s),
-%\code{stdio.h, errno.h} prints argument message \code{s} based on global int %\code{errno}
-
+syscalls used in CS100. They're organized by category and order of use in the class (as of Winter 2015). For your linux's safety and 
+your grade's safety, please use \texttt{perror()} with every syscall. 
 
 \medskip
-\begin{tabular}{llll}
-    \bf Function & \bf Interface & \bf Include & \bf Description\\
-    perror() & void perror(const char* s) &  stdio.h &  prints error message\\
-    && errno.h & based on global int \it errno \rm
-\end{tabular}
+\begin{tabu} {p{1in}|p{5.7in}}
+\texttt{perror()} & \indenth\texttt{void perror(const char* s)} --- prints \texttt{s} and syscall's error message as defined by global int \texttt{errno} to \texttt{stderr}
+    \\
+& \texttt{stdio.h}, \texttt{errno.h}
+\end{tabu}
 \normalsize
 
 \section{Syscall interface and libraries}
-
-pid\_t fork(void) - unistd.h & creates child process. Returns 0 to child process and child's pid to parent process, or -1 if error. No child made if error.
-%----------------------------Fork()
-%-----------------------------Exec note!!!!!!
-\begin{longtabu}{l p{1in} p{4in}}
-    \bf Interface & \bf Include & \bf Description
-    \\
-    \multicolumn{3}{l}{\large\bf Exec\normalsize} 
-    \\ \hline
-    \multicolumn{3}{l}{If exec succeeds, the current process will end and exec will not return. It returns -1 if it fails (e.g. program file not found). }
-    \\
-    \multicolumn{3}{l}{char *const argv also must be NULL terminated.}
-    \\ \\ \hline
-    int execv(const char* path, char *const argv\textbf{[]})& unistd.h & executes programs and passes arguments, requires full path name of program. 
-    \\
-    & &
-    \\ \hline
-    int execvp(const char* file, char *const argv\textbf{[]}) & unistd.h & executes programs and passes arguments, finds program file automatically
-    \\ \hline
-    pid\_t wait(int* status) & sys/types.h & waits for child process to terminate
-    \\
-%-----------------------------Wait
-    & sys/wait.h & %returns pid if succeeds, -1 if fails (e.g. invalid pid)
-    \\
-    & & %int* status stores exit status of child process. Use NULL if not needed.
-    \\ \hline
-    pid\_t waitpid(pid\_t pid, int* status, int options) & sys/types.h & similar to wait(), can specify pid, can also wait for stopped processes. Can add option to wait for process to stop (WUNTRACED) or to just check process (WNOHANG). Returns pid if succeeds, -1 if fails (e.g. invalid pid).
-    \\
-    & sys/wait.h & 
-%---------------------------------WAITPID
-    \\ \hline
-    DIR* opendir(const char* name) & sys/types.h & opens directory stream and returns pointer to its first entry
-    \\
-    & dirent.h & 
-%----------------------------------OPENDIR
-% Returns NULL on failure
-    \\ \hline
-    struct dirent* readdir(DIR* dirp) & dirent.h & means "read directory", returns pointer to struct dirent of next item in directory or null (end of dir/error)
-    \\ \hline
-    int closedir(DIR* dirp) & sys/types.h & closes  directory
-    \\
-%---------------------------------CLOSEDIR
-    & dirent.h & %returns 0 on success, -1 on failure
-    \\  \hline
-    int chdir(const char* path) & unistd.h & change directory of calling process to \it path \rm . Returns 0 on success, -1 on failure.
-    \\
-%----------------------------------CHDIR
-    \\ \hline
-    int stat(const char* path,  struct stat* buf) & sys/types.h & gives information about a file in struct stat, e.g. permissions, type of file, time created. See \it ls -l \rm for example of provided information. Stat has macros that take st_mode and returns true/false e.g. S_ISDIR(st_mode). Returns 0 on success, -1 on failure
-    \\
-    & sys/stat.h & 
-    \\
-    & unistd.h & 
-%-------------------------------------STAT
-    \\ \hline
-    int open(const char* pathname, int flags) int open(const char* pathname, int flags, mod\_t mode) & sys/types.h & opens file and returns file descriptor which can be used, with flags, to read/write/create file. Flags: Must use either O_RDONLY (read file), O_WRONLY (write to file), or O_RDWR (both) in call
-\t These can be bitwise OR'd ('|') with other flags. O_CREAT creates file if it doesn't exist
-\t O_TRUNC overwrites contents of file, O_APPEND writes at the end of file
-\t When creating files, `mode` arguments can be added to specify permissions of new file
-Warning: Every call to open() must have corresponding close()
-    \\
-    & sys/stat.h & 
-    \\
-    \ \ \ \ \ \ \ \ \ \ & fcntl.h & 
-%------------------------------------OPEN
-    \\ \hline
-    int close(int fd) & unistd.h & Close a file descriptor. Returns 0 on success, -1 on failure (e.g. invalid fd).
-%-------------------------------------CLOSE
-    \\ \hline
-    int dup(int oldfd) & unistd.h & copies file descriptor \it old fd\rm to the next lowest unused descriptor, returns new file descriptor on success, -1 on failure. Warning: be sure to close copies after you finish using them. File descriptors are a limited resource.
-    \\ \hline
-    int dup2(int oldfd, int newfd) & unistd.h & copies file descriptor \it oldfd\rm in newfd, closes newfd if it already exists, returns new file descriptor on success, -1 on failure
-    \\ \pagebreak
-    \bf Interface & \bf Include & \bf Description
-    \\ \hline
-    int pipe(int pipefd\textbf{[}2\textbf{]}) & unistd.h & returns two file descriptors in \it pipefd\rm,
-    \\
-    & & pipefd\textbf{[}0\textbf{]} $\rightarrow$ read
-    \\
-    & & pipefd\textbf{[}1\textbf{]} $\rightarrow$ write
-%---------------------------------------SIGNAL
-    \\ \hline
-    sighandler_t signal(int signum, sighandler_t handler) & signal.h & sets signal handler for signal \it signum\rm to signal handler function. Common signals are SIGINT to interrupt (Ctrl+c), SIGTSTP to temporarily stop (Ctrl+z), or SIGSEGV (segfault). For signal handlers: SIG_IGN ignores signal and SIG_DFL uses default handler. You can also use a user-defined handler like void myhandler(int sig). This is what sighandler_t is, a pointer to a void function that has an int parameter: typedef void (*sighandler_t)(int)
-%----------------------------------------SIGACTION
-    \\ \hline
-    int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) & signal.h & similar to signal(), but is more portable and conforms to POSIX. Not needed for CS100 projects. Sets signal handler of signal \it signum\rm to handler specified in struct sigaction \it act\rm and saves old handler struct to \it oldact\rm 
-    \\
-%    & & & for sake of space, struct will be listed at end of cheat sheet or omitted altogether. Just know that in struct sigaction, the sa_handler function pointer is default. It is equivalent to the handler for signal(). If sa_sigaction is set to SA_SIGINFO, then the function pointer sa_sigaction is used. It contains the parameter struct siginfo_t, which contains info about the signal, errno, calling pid, etc. The third parameter is unimportant. void (*sa_sigaction)(int, siginfo_t *, void *);
-%----------------------------------------PIPE
-%returns 0 on success, -1 on failure
-    \\ \hline
-    int kill(pid\_t pid, int sig) & sys/types.h & sends any signal to process or proccess group
-    \\
-    & signal.h & 
-%----------------------------------------KILL
-%returns 0 on success, -1 on failure
-    \\ \hline
-    char* getcwd(char*buf, size\_t size)& unistd.h & returns current working directory on success and copies to buf of size \it size\rm if present. Returns NULL on failure.
-%----------------------------------GETHOSTNAME
-    \\ \hline
-    int gethostname(char* name, size\_t len) & unistd.h & writes hostname to char array \it name\rm, requires size of array \it len\rm returns 0 on success, -1 on failure. Note: Char array must be large enough to hold hostname and NULL char.
-    \\ \hline
-    char* getlogin(void) & stdio.h & returns char pointer to current user's username on success, NULL on failure
-    \\ \hline
-    char* getenv(const char* name) & stdlib.h & returns value of environmental variable \it name\rm or NULL if it doesn't exist
-%-----------------------------------GETGRGID
-    \\ \hline
-    struct group* getgrgid(gid\_t gid) & sys/types.h & returns struct with group information on success, NULL on not finding gid or error (set errno to 0 before calling and check errno to see if error). Requires group id \it gid\rm
-    \\
-    &grp.h  &
-%-----------------------------------GETPWUID
-    \\ \hline
-    struct passwd* getpwuid(uid\_t uid) & sys/types.h & returns struct with user info related on success, NULL on not finding uid or error (set errno to 0 before calling and check errno to see if error). Requires user id \it uid \rm .
-    \\
-    & pwd.h &
-%-------------------------------------IOCTL
-    \\ \hline
-    int ioctl(int d, int request, ...) & sys/ioctl.h & sends request to file descriptor d, used to manipulate devices and terminals. Returns 0 on success usually (some devices use return as output value), -1 on error. Request codes will not be listed here. The third parameter is traditionally char* argp.
+\begin{longtabu}{p{1in}|p{5.7in}}
+    \bf Function & \textbf{Interface, Include, Description}
+        \\ \hline
+    % fork
+    \texttt{fork()} &  \indenth\texttt{pid\_t fork(void)} --- Creates child process. Returns 0 to child process and child's pid to parent process, or -1 if error. No child process made if error occurs.
+        \\
+    & \texttt{unistd.h}
+    %
+    % exec
+        \\ \hline
+    \texttt{exec} & \indenth\texttt{Exec} note: If \texttt{exec} succeeds, the current process will end and \texttt{exec} will not return. It returns \texttt{-1} if it fails (e.g. program file not found). \texttt{char *const argv} also must be \texttt{NULL} terminated. \par
+        \\
+    \texttt{execv()} & \indenth\texttt{int execv(const char* path, char *const argv[])} --- Executes program \texttt path and passes arguments \texttt{argv}. Requires full path name of program.
+        \\
+    & \texttt{unistd.h}
+        \\
+    \texttt{execvp()} & \indenth\texttt{int execvp(const char* file, char *const argv[])} Executes program \texttt path and passes arguments \texttt{argv}., finds program file automatically by checking directories in environmental variable \texttt{PATH}
+        \\
+    & \texttt{unistd.h}
+    %
+    % wait
+        \\ \hline
+    \texttt{wait()} & \indenth\texttt{pid\_t wait(int* status)} --- Waits for child process to terminate. Returns \texttt{pid} if succeeds, \texttt -1 if fails (e.g. no child). \texttt{int* status} stores exit status of child process. Use \texttt NULL if not needed. 
+        \\
+    & \texttt sys/wait.h
+    %
+        \\ \hline
+    \texttt{waitpid()} & \indenth\texttt{pid\_t waitpid(pid\_t pid, int* status, int options)} --- Similar to \texttt wait(). Can specify \texttt pid to wait for specific child; use 0 to wait for any child. Can also wait for stopped processes by adding option \texttt WUNTRACED and check immediately instead of waiting with \texttt WNOHANG (Bitwise OR '\texttt{|}' to combine options). Returns \texttt pid if succeeds, \texttt -1 if fails (e.g. invalid pid).
+        \\
+    & \texttt sys/wait.h
+    % opendir
+        \\ \hline
+    Directories and Files & \indenth Note: When these functions require a directory or file name, they only require a \itshape relative path\rm. This means that if your process was called in directory \texttt{bin/foo/bar/}, instead of using \texttt{bin/foo/bar/p.cpp}, the \itshape absolute path\rm, as your parameter, you can use \texttt{p.cpp} or \texttt{./p.cpp} instead. \par
+        \\
+    \texttt{opendir()} & \indenth\texttt{DIR* opendir(const char* name)} --- opens directory stream to directory \texttt{name} and returns pointer to its first entry. Returns NULL on error. 
+        \\
+    & \texttt dirent.h
+        %
+        \\ \hline
+    \texttt{closedir()} & \indenth\texttt{int closedir(DIR* dirp)} --- Closes  directory. returns 0 on success, -1 on failure
+        \\
+    & \texttt dirent.h
+        %
+        \\ \hline
+    \texttt{chdir()} & \indenth\texttt{int chdir(const char* path)} --- change directory of calling process to \it path \rm . Returns 0 on success, -1 on failure.
+        \\
+    & \texttt
+        %
+        \\ \hline
+    \texttt{stat()} & \indenth\texttt{int stat(const char* path,  struct stat* buf)} --- Gives information about a file in \texttt{struct stat}, e.g. permissions, type of file, time created. See \texttt{ls -l} for example of provided information. Macros are also provided that take \texttt{mode_t st_mode} in \texttt{struct stat} and returns true/false e.g. \texttt{S_ISDIR(st_mode)}, \texttt{S_REG(st_mode)}. Returns \texttt 0 on success, \texttt -1 on failure.
+        \\
+    & \texttt{sys/types.h}, \texttt{sys/stat.h}, \texttt{unistd.h}
+        %
+        \\ \hline
+    \texttt{open()} & \texttt{int open(const char* pathname, int flags)}
+        \\
+    & \texttt{int open(const char* pathname, int flags, mod\_t mode)}
+        \\
+    & \indenth Opens file and returns file descriptor which can be used, with flags, to read/write/create file. Flags: Must use either \texttt O\_RDONLY (read file), \texttt O_WRONLY (write to file), or \texttt O_RDWR (both) in call. These can be bitwise \texttt{OR}'d ('\texttt{|}') with other flags. \texttt O_CREAT creates file if it doesn't exist. \texttt O_TRUNC overwrites contents of file, O_APPEND writes at the end of file. When creating files, \texttt mode arguments can be added to specify permissions of new file.
+        \\
+    Warning: Every call to \texttt open() must have corresponding \texttt close() or else file descriptors will be left open (similar to memory leaks with \texttt new and \texttt delete).
+        \\
+    & \texttt
+        %
+        \\ \hline
+    \texttt{} & \indenth\texttt{} --- 
+        \\
+    & \texttt
 \end{longtabu}
 
-%\section{Common syscall errors}
-%\large \rm
+\section{Common syscall errors}
+\large \rm
 
 \end{document}
