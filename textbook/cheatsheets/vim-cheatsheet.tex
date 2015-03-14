@@ -55,138 +55,159 @@ errno
 \normalsize
 
 \section{Syscall interface and libraries}
-\begin{longtable}{llll}
-    \bf Function & \bf Interface & \bf Include & \bf Description
+\begin{longtable}{p{1.5in} l p{4in}}
+    \bf Interface & \bf Include & \bf Description
     \\
-    fork() & pid\_t fork(void) & unistd.h & creates child process.
+    pid\_t fork(void) & unistd.h & creates child process.
     \\
 %----------------------------Fork()
-    & & & %Returns 0 to child process and child's pid to parent process,
+    & & %Returns 0 to child process and child's pid to parent process,
     \\
-    & & & %or -1 if error. No child made if error.
-    \\ \hline
-    execv() & int execv(const char* path, & unistd.h & executes programs and 
-        passes arguments, 
-    \\
-    &  \ \ \ \ \ \ \ \ \ \ \ char *const argv\textbf{[]}) & &requires full path name of program
+    & & %or -1 if error. No child made if error.
 %-----------------------------Exec note!!!!!!
-    %& & & if exec succeeds, the current process will end and exec will not return. It returns -1 if it fails (e.g. program file not found)
+    %& & if exec succeeds, the current process will end and exec will not return. It returns -1 if it fails (e.g. program file not found)
+    %char *const argv must be NULL terminated
     \\ \hline
-    execvp() & int execvp(const char* file, & unistd.h & executes programs and 
+    int execv(const char* path, char *const argv\textbf{[]})& unistd.h & executes programs and 
         passes arguments, 
     \\
-    &  \ \ \ \ \ \ \ \ \ \ \ char *const argv\textbf{[]}) & &finds program file automatically
+    & &requires full path name of program. 
     \\ \hline
-    wait() & pid\_t wait(int* status) & sys/types.h & waits for child process to terminate
+    int execvp(const char* file, & unistd.h & executes programs and 
+        passes arguments, 
+    \\
+    \ \ \ \ \ \ \ \ \ \ \ char *const argv\textbf{[]}) & &finds program file automatically
+    \\ \hline
+    pid\_t wait(int* status) & sys/types.h & waits for child process to terminate
     \\
 %-----------------------------Wait
-    & & sys/wait.h & %returns pid if succeeds, -1 if fails (e.g. invalid pid)
+    & sys/wait.h & %returns pid if succeeds, -1 if fails (e.g. invalid pid)
     \\
-    & & & %int* status stores exit status of child process. Use NULL if not needed.
+    & & %int* status stores exit status of child process. Use NULL if not needed.
     \\ \hline
-    waitpid() & pid\_t waitpid(pid\_t pid, & sys/types.h & similar to wait(), can specify pid,
+    pid\_t waitpid(pid\_t pid, & sys/types.h & similar to wait(), can specify pid,
     \\
-    & \ \ \ \ \ \ \ \ \ \ int* status, int options) & sys/wait.h & can also wait for stopped processes
+    \ \ \ \ \ \ \ \ \ \ int* status, int options) & sys/wait.h & can also wait for stopped processes
 %   \\
 %---------------------------------WAITPID
 %    & & & Can add option to wait for process to stop (WUNTRACED) or to just check process (WNOHANG)
 %returns pid if succeeds, -1 if fails (e.g. invalid pid)
     \\ \hline
-    opendir() & DIR* opendir(const char* name) & sys/types.h & opens directory stream and returns
+    DIR* opendir(const char* name) & sys/types.h & opens directory stream and returns
     \\
-    & & dirent.h & pointer to its first entry
+    & dirent.h & pointer to its first entry
 %----------------------------------OPENDIR
 % Returns NULL on failure
     \\ \hline
-    readdir() & struct dirent* readdir(DIR* dirp) & dirent.h & means "read directory",
+    struct dirent* readdir(DIR* dirp) & dirent.h & means "read directory",
     \\
-    & & & returns pointer to struct dirent of next 
+    & & returns pointer to struct dirent of next 
     \\
-    & & & item in directory or null (end of dir/error)
+    & & item in directory or null (end of dir/error)
     \\ \hline
-    closedir() & int closedir(DIR* dirp) & sys/types.h & closes  directory
+    int closedir(DIR* dirp) & sys/types.h & closes  directory
     \\
 %---------------------------------CLOSEDIR
-    & & dirent.h & %returns 0 on success, -1 on failure
+    & dirent.h & %returns 0 on success, -1 on failure
     \\  \hline
-    chdir() & int chdir(const char* path) & unistd.h & change directory of calling process
+    int chdir(const char* path) & unistd.h & change directory of calling process
     \\
-    & & & to \it path \rm
+    & & to \it path \rm
 %----------------------------------CHDIR
 %returns 0 on success, -1 on failure
     \\ \hline
-    open() & int open(const char* pathname, int flags) & sys/types.h & opens file and returns file descriptor
+    int stat(const char* path, & sys/types.h & gives information about a file in struct stat,
     \\
-    & int open(const char* pathname, int flags, & sys/stat.h & which can be used, with flags,
+    \ \ \ \ \ \ \ \ \ \ struct stat* buf) & sys/stat.h & e.g. permissions, type of file, time created,
     \\
-    & \ \ \ \ \ \ \ \ \ \ mod\_t mode) & fcntl.h & to read/write/create file
+    & unistd.h & see \it ls -l \rm
+%-------------------------------------STAT
+%has macros that take st_mode and returns true/false e.g. S_ISDIR(st_mode)
+%returns 0 on success, -1 on failure
+    \\ \hline
+    int open(const char* pathname, int flags) & sys/types.h & opens file and returns file descriptor
+    \\
+    int open(const char* pathname, int flags, & sys/stat.h & which can be used, with flags,
+    \\
+    \ \ \ \ \ \ \ \ \ \ mod\_t mode) & fcntl.h & to read/write/create file
 %------------------------------------OPEN
 %Flags: Must use either O_RDONLY (read file), O_WRONLY (write to file), or O_RDWR (both) in call
 %\t These can be bitwise OR'd ('|') with other flags. O_CREAT creates file if it doesn't exist
 %\t O_TRUNC overwrites contents of file, O_APPEND writes at the end of file
 %\t When creating files, `mode` arguments can be added to specify permissions of new file
+%Warning: Every call to open() must have corresponding close()
     \\ \hline
-    close() & int close(int fd) & unistd.h & close a file descriptor
+    int close(int fd) & unistd.h & close a file descriptor
 %-------------------------------------CLOSE
 %returns 0 on success, -1 on failure
     \\ \hline
-    stat() & int stat(const char* path, & sys/types.h & gives information about a file in struct stat,
+    int dup(int oldfd) & unistd.h & copies file descriptor \it old fd\rm to the next lowest 
+    \\ 
+    & &unused descriptor, returns new file descriptor on success, -1 on failure
+%Warning: be sure to close copies after you finish using them. File descriptors are a limited resource.
+    \\ \hline
+    int dup2(int oldfd, int newfd) & unistd.h & copies file descriptor \it oldfd\rm in newfd, 
     \\
-    & \ \ \ \ \ \ \ \ \ \ struct stat* buf) & sys/stat.h & e.g. permissions, type of file, time created,
+    & &closes newfd if it already exists, returns new file descriptor on success, -1 on failure
+    \\ \pagebreak
+    \bf Interface & \bf Include & \bf Description
+    \\ \hline
+    int pipe(int pipefd\textbf{[}2\textbf{]}) & unistd.h & returns two file descriptors in \it pipefd\rm,
     \\
-    & & unistd.h & see \it ls -l \rm
-%-------------------------------------STAT
-%has macros that take st_mode and returns true/false e.g. S_ISDIR(st_mode)
+    & & pipefd\textbf{[}0\textbf{]} $\rightarrow$ read
+    \\
+    & & pipefd\textbf{[}1\textbf{]} $\rightarrow$ write
+%---------------------------------------SIGNAL
+    \\ \hline
+    sighandler_t signal(int signum, sighandler_t handler) & signal.h & sets signal handler for signal \it signum\rm to signal handler function
+    \\
+    & & Common signals are SIGINT to interrupt (Ctrl+c), SIGTSTP to temporarily stop (Ctrl+z), or SIGSEGV (segfault)
+    \\
+    & & For signal handlers: SIG_IGN ignores signal and SIG_DFL uses default handler. You can also use a user-defined handler like void myhandler(int sig). This is what sighandler_t is, a pointer to a void function that has an int parameter: typedef void (*sighandler_t)(int); 
+%----------------------------------------SIGACTION
+    \\ \hline
+    int sigaction(int signum, const struct sigaction *act, struct sigaction *oldact) & signal.h & similar to signal(), but is more portable and conforms to POSIX. Not needed for CS100 projects.
+    & & sets signal handler of signal \it signum\rm to handler specified in struct sigaction \it act\rm and saves old handler struct to \it oldact\rm 
+    \\
+%    & & & for sake of space, struct will be listed at end of cheat sheet or omitted altogether. Just know that in struct sigaction, the sa_handler function pointer is default. It is equivalent to the handler for signal(). If sa_sigaction is set to SA_SIGINFO, then the function pointer sa_sigaction is used. It contains the parameter struct siginfo_t, which contains info about the signal, errno, calling pid, etc. The third parameter is unimportant. void (*sa_sigaction)(int, siginfo_t *, void *);
+%----------------------------------------PIPE
 %returns 0 on success, -1 on failure
     \\ \hline
-    dup() & int dup(int oldfd) & unistd.h & creates copy of file descriptor in lowest 
-    \\ 
-    & & &unused descriptor 
-
-    \\ \hline
-    dup2() & int dup2(int oldfd, int newfd) & unistd.h & creates copy of oldfd in newfd, 
+    int kill(pid\_t pid, int sig) & sys/types.h & sends any signal to process
     \\
-    & & &closes newfd if it exists already 
-    \\ \pagebreak
-    \bf Function & \bf Interface & \bf Include & \bf Description
+    & signal.h & or proccess group
+%----------------------------------------KILL
+%returns 0 on success, -1 on failure
     \\ \hline
-    pipe() & int pipe(int pipefd\textbf{[}2\textbf{]}) & unistd.h & gives two file descriptors through pipefd,
+    char* getcwd(char*buf, size\_t size)& unistd.h & returns current working directory on success and
     \\
-    & & & pipefd\textbf{[}0\textbf{]} $\rightarrow$ read
+    & & copies to buf of size \it size\rm if present, returns NULL on failure
+%----------------------------------GETHOSTNAME
+    \\ \hline
+    int gethostname(char* name, size\_t len) & unistd.h & writes hostname to char array \it name\rm, requires size of array \it len\rm
     \\
-    & & & pipefd\textbf{[}1\textbf{]} $\rightarrow$ write
+    & & returns 0 on success, -1 on failure. Note: Char array must be large enough to hold hostname and NULL char.
     \\ \hline
-    kill() & int kill(pid\_t pid, int sig) & sys/types.h & sends any signal to process
+    char* getlogin(void) & stdio.h & returns char pointer to current user's username on success, NULL on failure
+    \\ \hline
+    char* getenv(const char* name) & stdlib.h & returns value of environmental variable \it name\rm or NULL if it doesn't exist
+%-----------------------------------GETGRGID
+    \\ \hline
+    struct group* getgrgid(gid\_t gid) & sys/types.h & returns struct with group information on success, NULL on not finding gid or error (set errno to 0 before calling and check errno to see if error)
     \\
-    & & signal.h & or proccess group
+    &grp.h  &requires group id \it gid\rm
+%-----------------------------------GETPWUID
     \\ \hline
-    getcwd() & char* getcwd(char*buf, size\_t size)& unistd.h & get current working directory,
+    struct passwd* getpwuid(uid\_t uid) & sys/types.h & returns struct with user info related on success, NULL on not finding uid or error (set errno to 0 before calling and check errno to see if error)
     \\
-    & & & copy to buf if present
+    & pwd.h &requires user id \it uid \rm
+%-------------------------------------IOCTL
     \\ \hline
-    getenv() & char* getenv(const char* name) & stdlib.h & returns value of environmental variable
-    \\ \hline
-    getgrgid() & struct group* getgrgid(gid\_t gid) & sys/types.h & get struct with group info,
+    int ioctl(int d, int request, ...) & sys/ioctl.h & send request to file descriptor d,
     \\
-    & &grp.h  &requires group id
-    \\ \hline
-    gethostname() & int gethostname(char* name, size\_t len) & unistd.h & write hostname in char array \it name\rm, 
+    & & used to manipulate devices and terminals. Returns 0 on success usually (some devices use return as output value), -1 on error. 
     \\
-    & & & size \it len\rm
-    \\ \hline
-    getlogin() & char* getlogin(void) & stdio.h & get char pointer to logged in username
-    \\ \hline
-    getpwuid & struct passwd* getpwuid(uid\_t uid) & sys/types.h & get struct with user info,
-    \\
-    & & pwd.h &requires user id \it uid \rm
-    \\ \hline
-    ioctl() & int ioctl(int d, int request, ...) & sys/ioctl.h & send request to file descriptor d,
-    \\
-    & & & used to manipulate devices and terminals
-    
-    
-    
-    
+    & & Request codes will not be listed here. The third parameter is traditionally char* argp.
 \end{longtable}
 
 \section{Common syscall errors}
