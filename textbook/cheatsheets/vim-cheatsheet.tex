@@ -8,13 +8,23 @@
 \usepackage{tabu}
 \usepackage{longtable}
 \usepackage{color}
+\usepackage{microtype} % For Add to macro
 
 \lstset{ %
 basicstyle=\large % For font size
 }
-\lstnewenvironment{code}[2]
+
+\makeatletter   % To make verbatim look like lstlisting
+\g@addto@macro\verbatim@font{\lsstyle}
+\makeatother
+
+\lstnewenvironment{code}[2] % Tried to macro easy inclusion of code. Failed
   {\lstset{label=#1}}
   {}
+
+%Trying to make verbatim look like lstlisting to take advantage of \verb, , syntax
+\newcommand{\verbcode}[1]{\large\ttfamily#1\rm\normalsize}
+
 
 \title{CS100 Syscall Cheatsheet}
 \author{}
@@ -28,7 +38,10 @@ syscalls used in CS100. I list errors on the back. For your linux's safety and
 your grade's safety, please use perror() with every syscall.
 
 \smallskip
-\begin{code}void perror(const char* s)\end{code}
+\begin{lstlisting}
+void perror(const char* s)
+\end{lstlisting}
+\verb,void perror(const char* s),
 %\code{stdio.h, errno.h} prints argument message \code{s} based on global int %\code{errno}
 
 
